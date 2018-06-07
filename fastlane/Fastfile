@@ -1,3 +1,94 @@
+PROJECT_ROOT = File.expand_path(File.dirname(__FILE__), '..')
+DERIVED_DATA_PATH = File.join(PROJECT_ROOT, 'fastlane', 'derived_data')
+FASTLANE_ROOT = File.join(PROJECT_ROOT, 'fastlane')
+
+DEFAULT_REPORTS_PATH = "uitest_output*"
+
 lane :test do
   retry
+end
+
+desc 'Build UI tests'
+lane :build_xcuitest do
+  build_sim(
+    scheme: 'xxxxxx',
+    build_type: 'build-for-testing'
+  )
+end
+
+desc 'Prepare Simulator'
+private_lane :build_sim do |options|
+  scheme = options[:scheme]
+  configuration = options[:configuration] || 'Debug'
+  sdk = 'iphonesimulator'
+  build_type = options[:build_type] || 'build'
+
+  default_xcargs = "-derivedDataPath #{DERIVED_DATA_PATH} "
+  default_xcargs << "clean #{build_type}"
+
+  xcargs = options[:xcargs] ? "#{ options[:xcargs] } #{ default_xcargs }" : default_xcargs
+
+  xcodebuild(
+    workspace: 'xxxxxx.xcworkspace',
+    configuration: configuration,
+    sdk: sdk,
+    scheme: scheme,
+    xcargs: xcargs
+  )
+end
+
+desc 'Helper method to remove results from last test run'
+private_lane :clean_old_results do
+  old = Dir.glob(DEFAULT_REPORTS_PATH)
+  old.each {|folder| FileUtils.rm_rf folder}
+end
+
+desc 'Helper method to re-arrange the files generated from all retry test runs'
+private_lane :clean_retried_results do
+  results_backup = File.join(FASTLANE_ROOT, 'uitest_output_backup')
+  old = Dir.glob(results_backup)
+  old.each {|folder| FileUtils.rm_rf folder}
+
+  Dir.mkdir(results_backup) unless File.exists?(results_backup)
+  retries = Dir.glob('uitest_output/Retry*')
+  retries.shift
+  retries.each do |folder|
+    FileUtils.cp_r(folder, results_backup)
+    FileUtils.rm_rf folder
+  end
+end
+
+desc 'Run tests with retry'
+lane :uitest_with_retry do |options|
+ENV['DISABLE_SLACK'] = 'YES'
+
+# Start by building test suite
+build_xcuitest
+
+# Set paths for results
+xctestrun_path = Dir["#{FASTLANE_ROOT}/derived_data/Build/Products/*.xctestrun"].first
+result_bundle_path = File.join(FASTLANE_ROOT, 'uitest_output/Retry')
+report_path = File.join(FASTLANE_ROOT, 'uitest_output')
+
+# It is necessary to remove the results from last test run before starting so you can use this method or create your own
+clean_old_results
+
+# Run tests with retry
+multi_scan(
+  workspace: File.absolute_path('../xxxxxx.xcworkspace'),
+  scheme: 'xxxxxx',
+  try_count: options[:tries],
+  result_bundle: result_bundle_path,
+  output_directory: result_bundle_path,
+  destination: options[:devices],
+  xctestrun: xctestrun_path,
+  test_without_building: true
+)
+
+# Optional: re-organize results after test run (moves final report into one folder, and retains reports from each individual retry run in a separate folder)
+clean_retried_results
+
+# Optional: use xchtmlreport to generate a pretty report from the generated .plist
+sh("/usr/local/bin/xchtmlreport -r [insert file path of the .plist in the Retry folder that was generated]")
+
 end
