@@ -2,10 +2,17 @@
 
 [![fastlane Plugin Badge](https://rawcdn.githack.com/fastlane/fastlane/master/fastlane/assets/plugin-badge.svg)](https://rubygems.org/gems/fastlane-plugin-retry)
 
-Retries failed XCUITest test cases. 
+A fastlane plugin that automatically retries failed XCUITest test cases. This plugin is loosely based off [lyndsey-ferguson's fastlane-plugin-test_center](https://github.com/lyndsey-ferguson/fastlane-plugin-test_center) plugin, which uses JUnit reports instead of PList to generate a simple HTML report.
+
+This plugin works with the following logic:
+1) Run the whole test suite once
+2) Parse the generated .plist results to obtain a list of the failed tests
+3) Retry the failed tests an 'x' number of times (see below for how to specify the number of retries) and generate a .plist report for each retry run
+4) Merge all .plist reports together to generate one final .plist report
+
+Tip: You can then use the final .plist report with the [XCHtmlReport plugin](https://github.com/TitouanVanBelle/XCTestHTMLReport) to generate a very beautiful HTML report including screenshots and console logs! See the sample fastfile for usage.
 
 This plugin is available in the [Ruby Gems directory](https://rubygems.org/gems/fastlane-plugin-retry).
-
 
 ## Installation
 
@@ -30,7 +37,7 @@ bundle install
 
 ## Usage
 
-See the sample fastfile for how to configure your project's fastfile. Once you have configured your fastfile, use the following command to run tests with retry.
+See the sample fastfile for how to configure your project's fastfile. Once you have configured your fastfile, use the following command to run your tests with retry (you can change the number of tries and the device).
 ```
 bundle exec fastlane run_tests_with_retry tries:3 devices:"platform=iOS Simulator,name=iPhone 8,OS=11.4"
 ```
