@@ -38,8 +38,10 @@ module Fastlane
       def self.parse_failures(plist, scheme_name)
         failures = Array.new
         target_report = File.open(plist) {|f| Nokogiri::XML(f)}
+        # Get the names of all the failed tests from the specified report
         failed = target_report.xpath("//key[contains(.,'Failure')]/../key[contains(.,'TestIdentifier')]/following-sibling::string[contains(.,'()') and contains (., '/')]")
         failed.each do |test_name|
+          # Reformat the test name to be usable by the xcodebuild 'only_testing' flag
           failures << ("#{scheme_name}/" + test_name.to_s.split('(')[0].split('>')[1])
         end
         failures

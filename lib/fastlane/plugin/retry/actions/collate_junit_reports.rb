@@ -8,16 +8,19 @@ module Fastlane
 
       def self.run(params)
         report_filepaths = params[:reports].reverse
+        # If no retries are required return the results
         if report_filepaths.size == 1
           FileUtils.cp(report_filepaths[0], params[:collated_report])
         else
           target_report = File.open(report_filepaths.shift) {|f| Nokogiri::XML(f)}
           reports = report_filepaths.map { |report_filepath| Nokogiri::XML(Nokogiri::PList(open(report_filepath)).to_plist) }
+          # Clean each retry report and merge it into the first report
           reports.each do |retry_report|
             retry_report = clean_report(retry_report.to_s)
             mergeLists(target_report, retry_report, params)
           end
         end
+        # Merge screenshots and console logs from all retry runs
         merge_assets(params[:assets], params[:collated_report] + "/Attachments")
         merge_logs(params[:logs], params[:collated_report] + "/")
       end
@@ -30,6 +33,7 @@ module Fastlane
         retried_tests = retry_report.xpath("//key[contains(.,'TestSummaryGUID')]/..")
         current_node = retried_tests.shift
         while (current_node != nil)
+          # For each retried test, get the corresponding node of data from the retried report and merge it into the base report
           testName = get_test_name(current_node)
           matching_node = target_report.at_xpath("//string[contains(.,'#{testName}')]/..")
           if (!matching_node.nil?)
@@ -51,6 +55,7 @@ module Fastlane
 
       # Cleans formatting of report
       def self.clean_report(report)
+        # Removes unescaped <> characters which cause the final .plist to become unreadable
         report = report.gsub("<XCAccessibilityElement:/>0x", " XCAccessibilityElement ")
         report = report.gsub("<XCAccessibilityElement:></XCAccessibilityElement:>", " XCAccessibilityElement ")
         report = Nokogiri::XML(report)
