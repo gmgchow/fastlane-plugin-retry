@@ -89,6 +89,7 @@ multi_scan(
 clean_retried_results
 
 # Optional: use xchtmlreport to generate a pretty report from the generated .plist
+# If you use this line, you must first install XCHtmlReport using this command: brew install TitouanVanBelle/XCTestHTMLReport/xchtmlreport
 sh("/usr/local/bin/xchtmlreport -r [insert file path of the .plist in the Retry folder that was generated]")
 
 end
