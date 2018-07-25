@@ -58,9 +58,9 @@ module Fastlane
       def self.merge_reports(scan_options, final_report_path)
         UI.header("Merging Reports")
         folder = get_folder_root(scan_options[:output_directory])
-        report_files = Dir.glob("#{folder}*/*/*/action_TestSummaries.plist")
-        asset_files = Dir.glob("#{folder}*/*/*/Attachments")
-        log_files = Dir.glob("#{folder}*/*/*/action.xcactivitylog")
+        report_files = Dir.glob("#{folder}*/**/action_TestSummaries.plist").sort
+        asset_files = Dir.glob("#{folder}*/**/Attachments")
+        log_files = Dir.glob("#{folder}*/**/action.xcactivitylog")
         if report_files.size > 1
           other_action.collate_junit_reports(
             reports: report_files,

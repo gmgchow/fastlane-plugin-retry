@@ -7,7 +7,7 @@ module Fastlane
     class CollateJunitReportsAction < Action
 
       def self.run(params)
-        report_filepaths = params[:reports].reverse
+        report_filepaths = params[:reports]
         # If no retries are required return the results
         if report_filepaths.size == 1
           FileUtils.cp(report_filepaths[0], params[:collated_report])
