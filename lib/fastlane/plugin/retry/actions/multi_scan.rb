@@ -19,6 +19,7 @@ module Fastlane
 
         begin
           try_count += 1
+          UI.header("Test Attempt: #{try_count}")
           scan_options = config_with_retry(scan_options, try_count)
           config = FastlaneCore::Configuration.create(Fastlane::Actions::ScanAction.available_options, scan_options)
           Fastlane::Actions::ScanAction.run(config)
@@ -28,6 +29,12 @@ module Fastlane
             report_filepath = plist_report_filepath(scan_options)
             failed_tests = parse_failures(report_filepath, params[:scheme])
             scan_options[:only_testing] = failed_tests
+            retry
+          end
+        rescue FastlaneCore::Interface::FastlaneCommonException => e
+          UI.important("Probably encountered an environment failure: #{e}")
+          if try_count < params[:try_count]
+            UI.important("Retrying the last run from the beginning.")
             retry
           end
         end
@@ -49,6 +56,7 @@ module Fastlane
 
       # Merge results from all retries
       def self.merge_reports(scan_options, final_report_path)
+        UI.header("Merging Reports")
         folder = get_folder_root(scan_options[:output_directory])
         report_files = Dir.glob("#{folder}*/*/*/action_TestSummaries.plist")
         asset_files = Dir.glob("#{folder}*/*/*/Attachments")
